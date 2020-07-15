@@ -1,0 +1,173 @@
+##
+## Makefile.am
+##
+## TALPA Filsystem Interceptor
+##
+## Copyright (C) 2004-2016 Sophos Limited, Oxford, England.
+##
+## This program is free software; you can redistribute it and/or modify it under the terms of the
+## GNU General Public License Version 2 as published by the Free Software Foundation.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+## even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+## See the GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License along with this program; if not,
+## write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+##
+
+
+## Kernel version dependent stuff
+ko := @ko@
+interceptor_module := @interceptor_module@
+interceptor_name := @interceptor_name@
+
+export ko interceptor_module interceptor_name
+
+EXTRA_DIST =  Makefile26.in clients/Makefile.in \
+		support/stacker/common.mk \
+		support/symbolver/common.mk \
+		src/app-ctrl/intercepts/talpa-lsm/common.mk \
+		src/platforms/linux/talpa_capability/common.mk \
+		tests/functions.sh tests/benchmark/Makefile.in tests/benchmark/bench.sh \
+		$(patsubst $(srcdir)/%,%,$(shell find $(srcdir)/src $(srcdir)/include $(srcdir)/support $(srcdir)/clients $(srcdir)/tests/benchmark \( -name \*.c -o -name \*\.h \) -print))
+
+TALPAMODULESRC =
+
+if KBUILD26
+
+if KBUILDUSEM
+kbuildenv := M
+else !KBUILDUSEM
+kbuildenv := SUBDIRS
+endif !KBUILDUSEM
+
+EXTRA_DIST += $(shell find src -type f -name "*.h")
+
+TALPAMODULES := \
+				talpa_core.ko \
+				talpa_linux.ko \
+				talpa_vcdevice.ko \
+				talpa_pedevice.ko \
+				talpa_pedconnector.ko \
+				talpa_syscallhook.ko \
+				talpa_syscallhookprobe.ko \
+				talpa_syscall.ko \
+				talpa_vfshook.ko
+
+
+if BUILDSYMBOLVER
+TALPAMODULES += symbolver.ko
+TALPAMODULESRC += support/symbolver/symbolver.c
+endif BUILDSYMBOLVER
+
+if BUILDLSM
+
+TALPAMODULES += \
+				talpa_capability.ko \
+				talpa_lsm.ko
+
+## Manually add sources which aren't currently handled by automake.
+
+TALPAMODULESRC += src/app-ctrl/intercepts/talpa-lsm/talpa_lsm_module.c
+TALPAMODULESRC += src/platforms/linux/talpa_capability/talpa_capability.c
+
+if BUILDSTACKER
+
+TALPAMODULES += stacker.ko
+
+TALPAMODULESRC += support/stacker/stacker.c
+
+STACKERMODULES = \
+	stacker.ko
+
+STACKERMODULESRC = \
+	support/stacker/stacker.c
+
+stacker: $(STACKERMODULES)
+
+.PHONY: stacker exampleclients benchmark
+else !BUILDSTACKER
+.PHONY: exampleclients benchmark
+endif !BUILDSTACKER
+
+endif BUILDLSM
+
+modulesdir       = $(libdir)
+modules_SCRIPTS  = $(TALPAMODULES)
+
+$(TALPAMODULES) : $(TALPAMODULESRC)
+	$(MAKE) -C @kerneldir@ $(kbuildenv)=@abs_top_srcdir@ modules
+
+##BUILT_SOURCES = $(TALPAMODULES)
+
+clean-local :
+	$(MAKE) -C @kerneldir@ $(kbuildenv)=@abs_top_srcdir@ clean
+	@cd clients && make clean
+	@cd tests/benchmark && make clean
+
+else !KBUILD26
+
+modules_SYMS            =   -D__KERNEL__ -DMODULE -DEXPORT_SYMTAB @talpaversion@ @debug@ @assert@ @freetaskflag@ @pathlookup@ @newparent@ @printkaddr@ @dotruncatetype@ @dotruncateaddr@ @backportedprefetch@ @snprintf@ @xhack@ @binarysysctl@ ${TALPA_ID} ${TALPA_SYSCALL_TABLE} ${TALPA_SYSCALL32_TABLE}
+modules_CFLAGS          =   $(modules_SYMS) -O2 -fno-strict-aliasing -fno-common -fomit-frame-pointer -mpreferred-stack-boundary=2 -Wall -I$(srcdir)/src -I$(srcdir)/src/ifaces -I$(srcdir)/include @kernelincludes@
+MODULELINKCMD           =   $(MODULELINKER) -m elf_i386 -r -o $@
+modulesdir              =   $(libdir)
+modules_PROGRAMS        =   talpa_core.o talpa_linux.o talpa_syscall.o talpa_vcdevice.o talpa_pedevice.o talpa_pedconnector.o talpa_syscallhook.o talpa_syscallhookprobe.o talpa_vfshook.o
+
+clean-local :
+	@cd clients && make clean
+	@cd tests/benchmark && make clean
+
+.PHONY: exampleclients benchmark
+
+endif !KBUILD26
+
+## Clean up the fallout resulting from kbuild operating in the source tree.
+dist-hook:
+	rm -f $(distdir)/TODO
+	find $(distdir) -type d -name .svn -prune -print0 | xargs -r -0 -- rm -rf
+	find $(distdir) -name \*.o -print0 | xargs -r -0 -- rm
+	find $(distdir) -name .\*.cmd -print0 | xargs -r -0 -- rm
+	rm -rf $(distdir)/tests/modules/src
+	rm -rf $(distdir)/src/ifaces/platform
+	find $(distdir) -type f -iname makefile.am -print0 | xargs -r -0 -- rm
+	rm -f $(distdir)/configure.ac
+	find $(distdir) -type d -print | sort -r | xargs -- rmdir 2>/dev/null || true
+
+interface.spec : include/talpa-processexclusion.h include/talpa-vettingclient.h
+	sha1sum $^ | sed -e"s/  / /" >$@
+
+manifest.spec : distdir
+	( cd $(distdir) && find * -type f | gawk -- '{ a[NR] = $$0; } END { asort(a,o); for (i=1; i<=NR ; i++) print o[i]; }' | xargs sha1sum | sed -e"s/  / /" ) >$@
+
+source.spec : distdir
+	( cd $(distdir) && find include src -type f | gawk -- '{ a[NR] = $$0; } END { asort(a,o); for (i=1; i<=NR ; i++) print o[i]; }' | xargs sha1sum | sed -e"s/  / /" ) >$@
+
+manifest.sig : manifest.spec
+	echo "" >manifest.sig
+
+talpa-srcpack.tar.gz : distdir interface.spec manifest.spec source.spec manifest.sig
+	chmod -R og-rwx $(distdir) manifest.sig manifest.spec source.spec interface.spec
+	tar cf - $(distdir) manifest.sig manifest.spec source.spec interface.spec | GZIP=$(GZIP_ENV) gzip -c >$@
+
+exampleclients:
+	@cd clients && make
+
+benchmark:
+	@cd tests/benchmark && make benchmark
+
+include src/app-ctrl/core/talpa-core/Makefile.am
+include src/app-ctrl/core/talpa-linux/Makefile.am
+include src/app-ctrl/intercepts/talpa-syscall/Makefile.am
+include src/app-ctrl/filter-iface/vetting-clients/talpa-vcdevice/Makefile.am
+include src/app-ctrl/filter-iface/process-exclusion/talpa-pedevice/Makefile.am
+include src/platforms/linux/talpa_syscallhook/Makefile.am
+include src/platforms/linux/talpa_syscallhookprobe/Makefile.am
+include src/platforms/linux/talpa_pedconnector/Makefile.am
+include src/app-ctrl/intercepts/talpa-vfshook/Makefile.am
+
+SUBDIRS = tests
+
+##
+## End of Makefile.am
+##

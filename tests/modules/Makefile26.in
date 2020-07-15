@@ -1,0 +1,116 @@
+
+EXTRA_CFLAGS += -I$(src)/../../src -I$(src)/../../src/ifaces -I$(src)/../../include \
+		${TALPA_ID} ${TALPA_SYSCALL_TABLE} ${TALPA_SYSCALL32_TABLE} ${TALPA_RODATA_START} ${TALPA_RODATA_END} \
+		@talpaversion@ \
+		@debug@ \
+		@assert@ \
+		@bool@ \
+		@ctltable@ \
+		@freetaskflag@ \
+		@dpath@ \
+		@printkaddr@ \
+		@dotruncatetype@ @dotruncateaddr@ \
+		@check_retpoline@ \
+		@tasknewtty@ \
+		@rcubackport@ \
+		@mutexes@ \
+		@inodemutex@ \
+		@fdentry@ \
+		@inodeiprivate@ \
+		@signalbackport@ \
+		@jiffiesbackport@ \
+		@smbfs@ \
+		@lsm265@ \
+		@lsm266@ \
+		@lsm2610@ \
+		@lsm2614@ \
+		@lsmkeys@ \
+		@hidden@ \
+		@xhack@ \
+		@structfilename@ \
+		@hrtimers@ \
+		@imapathcheck@ \
+		@rodata@ \
+		@hassetpages@ \
+		@needsvacpa@ \
+		@nopasymbol@ \
+		@kfuncchpgattraddr@ \
+		@notasklistlock@ \
+		@vfsmntlock@ \
+		@samefile@ \
+		@filldirbackport@ \
+		@mountrcubackport@ \
+		@probe_kernel_read@ \
+		@binarysysctl@ \
+		@securityfs@ \
+		@linuxuidgid@ \
+		@dualfs@ \
+		@putname@ \
+		@getname@ \
+		@vfsunlink@ \
+		@vfsreaddir@ \
+		@lookup_mnt_last@ \
+		@get_fs_root_and_pwd@ \
+		@vfsmount_namespace@ \
+		@compile_flags@
+
+obj-m :=    tlp-personality.o \
+            tlp-fileinfo.o \
+            tlp-filesysteminfo.o \
+            tlp-syslog.o \
+            tlp-stdinterceptor.o \
+            tlp-inclusion.o \
+            tlp-opexcl.o \
+            tlp-allowsyslog.o \
+            tlp-denysyslog.o \
+            tlp-threadinfo.o \
+            tlp-exclusion.o \
+            tlp-ddvc.o \
+            tlp-cacheobj.o \
+            tlp-cache.o \
+            tlp-degrmode.o \
+            tlp-file.o \
+            tlp-wronginterceptor.o \
+            tlp-syscalltable.o
+
+ifeq "@buildprocfs@" "yes"
+	obj-m += tlp-procfs.o
+endif
+
+ifeq "@buildsecurityfs@" "yes"
+	obj-m += tlp-securityfs.o
+endif
+
+ifeq "@builddualfs@" "yes"
+	obj-m += tlp-dualfs.o
+endif
+
+include $(src)/common.mk
+
+tlp-personality-objs := $(tlpPersonalityOBJS)
+tlp-fileinfo-objs := $(tlpFileInfoOBJS)
+tlp-filesysteminfo-objs := $(tlpFilesystemInfoOBJS)
+tlp-syslog-objs := $(tlpSyslogOBJS)
+tlp-procfs-objs := $(tlpProcfsOBJS)
+tlp-securityfs-objs := $(tlpSecurityfsOBJS)
+tlp-dualfs-objs := $(tlpDualfsOBJS)
+tlp-stdinterceptor-objs := $(tlpStdInterceptorOBJS)
+tlp-inclusion-objs := $(tlpInclusionOBJS)
+tlp-opexcl-objs := $(tlpOpExclOBJS)
+tlp-allowsyslog-objs := $(tlpAllowSyslogOBJS)
+tlp-denysyslog-objs := $(tlpDenySyslogOBJS)
+tlp-threadinfo-objs := $(tlpThreadInfoOBJS)
+tlp-exclusion-objs := $(tlpExclusionOBJS)
+tlp-ddvc-objs := $(tlpDDVCOBJS)
+tlp-cacheobj-objs := $(tlpCacheObjOBJS)
+tlp-cache-objs := $(tlpCacheOBJS)
+tlp-degrmode-objs := $(tlpDegrModeOBJS)
+tlp-file-objs := $(tlpFileOBJS)
+tlp-wronginterceptor-objs := $(tlpWrongInterceptorOBJS)
+tlp-syscalltable-objs := $(tlpSyscallTableOBJS)
+
+# Hidden by makefile, which is run in preference.  If makefile doesn't exist,
+# then we shall cry foul.
+all:
+	@echo "Please run 'configure' before building."
+	@exit 1

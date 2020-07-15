@@ -1,0 +1,138 @@
+
+EXTRA_CFLAGS += -I$(src)/src -I$(src)/src/ifaces -I$(src)/include \
+		${TALPA_ID} ${TALPA_SYSCALL_TABLE} ${TALPA_SYSCALL32_TABLE} ${TALPA_RODATA_START} ${TALPA_RODATA_END} \
+		@talpaversion@ \
+		@debug@ \
+		@assert@ \
+		@bool@ \
+		@ctltable@ \
+		@freetaskflag@ \
+		@dpath@ \
+		@printkaddr@ \
+		@dotruncatetype@ @dotruncateaddr@ \
+		@tasknewtty@ \
+		@rcubackport@ \
+		@mutexes@ \
+		@inodemutex@ \
+		@fdentry@ \
+		@inodeiprivate@ \
+		@signalbackport@ \
+		@jiffiesbackport@ \
+		@smbfs@ \
+		@lsm265@ \
+		@lsm266@ \
+		@lsm2610@ \
+		@lsm2614@ \
+		@lsmkeys@ \
+		@hidden@ \
+		@xhack@ \
+		@structfilename@ \
+		@hrtimers@ \
+		@hookdops@ \
+		@imapathcheck@ \
+		@rodata@ \
+		@hassetpages@ \
+		@needsvacpa@ \
+		@nopasymbol@ \
+		@kfuncchpgattraddr@ \
+		@notasklistlock@ \
+		@probe_kernel_read@ \
+		@vfsmntlock@ \
+		@samefile@ \
+		@filldirbackport@ \
+		@mountrcubackport@ \
+		@binarysysctl@ \
+		@securityfs@ \
+		@dualfs@ \
+		@putname@ \
+		@getname@ \
+		@strdupuser@ \
+		@linuxuidgid@ \
+		@vfsunlink@ \
+		@vfsreaddir@ \
+		@lookup_mnt_last@ \
+		@get_fs_root_and_pwd@ \
+		@vfsmount_namespace@ \
+        @compile_flags@
+
+obj-m := talpa_linux.o talpa_core.o talpa_vcdevice.o talpa_pedevice.o talpa_pedconnector.o
+
+ifeq "@syscallhook@" "yes"
+	obj-m += talpa_syscallhook.o talpa_syscallhookprobe.o talpa_syscall.o talpa_vfshook.o
+endif
+
+ifeq "@buildlsm@" "yes"
+	obj-m += talpa_capability.o talpa_lsm.o
+	ifeq "@buildstacker@" "yes"
+		obj-m += stacker.o
+	endif
+endif
+
+ifeq "@buildsymbolver@" "yes"
+	obj-m += symbolver.o
+endif
+
+include $(src)/src/app-ctrl/core/talpa-linux/common.mk
+talpa_linux-objs := $(talpaLinuxOBJS)
+
+ifeq "@buildprocfs@" "yes"
+	talpa_linux-objs += $(talpaProcFSConfiguratorOBJS)
+endif
+
+ifeq "@buildsecurityfs@" "yes"
+	talpa_linux-objs += $(talpaSecurityFSConfiguratorOBJS)
+endif
+
+ifeq "@builddualfs@" "yes"
+	talpa_linux-objs += $(talpaDualFSConfiguratorOBJS)
+endif
+
+include $(src)/src/app-ctrl/core/talpa-core/common.mk
+talpa_core-objs :=  $(talpaCoreOBJS)
+
+include $(src)/src/app-ctrl/filter-iface/vetting-clients/talpa-vcdevice/common.mk
+talpa_vcdevice-objs :=  $(talpaVcdeviceOBJS)
+
+include $(src)/src/app-ctrl/filter-iface/process-exclusion/talpa-pedevice/common.mk
+talpa_pedevice-objs :=  $(talpaPedeviceOBJS)
+
+include $(src)/src/platforms/linux/talpa_pedconnector/common.mk
+talpa_pedconnector-objs := $(talpaPEDConnectorOBJS)
+
+ifeq "@syscallhook@" "yes"
+	include $(src)/src/platforms/linux/talpa_syscallhook/common.mk
+	talpa_syscallhook-objs := $(talpaSyscallHookOBJS)
+
+	include $(src)/src/platforms/linux/talpa_syscallhookprobe/common.mk
+	talpa_syscallhookprobe-objs := $(talpaSyscallHookProbeOBJS)
+
+	include $(src)/src/app-ctrl/intercepts/talpa-syscall/common.mk
+	talpa_syscall-objs :=   $(talpaSyscallOBJS)
+
+	include $(src)/src/app-ctrl/intercepts/talpa-vfshook/common.mk
+	talpa_vfshook-objs :=   $(talpaVFSHookOBJS)
+endif
+
+ifeq "@buildlsm@" "yes"
+	ifeq "@buildstacker@" "yes"
+		include $(src)/support/stacker/common.mk
+		stacker-objs := $(talpaStackerOBJS)
+	endif
+
+	include $(src)/src/platforms/linux/talpa_capability/common.mk
+	talpa_capability-objs := $(talpaCapabilityOBJS)
+
+	include $(src)/src/app-ctrl/intercepts/talpa-lsm/common.mk
+	talpa_lsm-objs :=   $(talpaLsmOBJS)
+endif
+
+ifeq "@buildsymbolver@" "yes"
+	include $(src)/support/symbolver/common.mk
+	symbolver-objs := $(talpaSymbolverOBJS)
+endif
+
+# Hidden by makefile, which is run in preference.  If makefile doesn't exist,
+# then we shall cry foul.
+all:
+	@echo "Please run 'configure' before building."
+	@exit 1
