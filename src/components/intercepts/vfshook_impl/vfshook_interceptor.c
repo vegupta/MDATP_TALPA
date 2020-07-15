@@ -334,6 +334,30 @@ static int talpaOpen(struct inode *inode, struct file *file)
     hookExitRv(ret);
 }
 
+static long talpaDummyOpen(unsigned int fd)
+{
+    /* We do not want to intercept this through talpa-syscallhook! */
+    /* err("Incorrect usage of talpa-syscallhook and talpa-vfshook modules!"); */
+
+    return 0;
+}
+
+static void talpaDummyClose(unsigned int fd)
+{
+    /* We do not want to intercept this through talpa-syscallhook! */
+    /* err("Incorrect usage of talpa-syscallhook and talpa-vfshook modules!"); */
+    
+    return;
+}
+
+static long talpaDummyUselib(const char __user * library)
+{
+    /* We do not want to intercept this through talpa-syscallhook! */
+    /* err("Incorrect usage of talpa-syscallhook and talpa-vfshook modules!"); */
+
+    return 0;
+}
+
 static int talpaRelease(struct inode *inode, struct file *file)
 {
     struct patchedFilesystem *p;
