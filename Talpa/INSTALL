@@ -36,6 +36,22 @@ may remove or edit it.
 `configure.ac' if you want to change it or regenerate `configure' using
 a newer version of `autoconf'.
 
+Prerequisite to install this package:
+1.Install following packages with correct version:
+   automake-1.14-1.el6.x86_64
+   autoconf-2.69-12.el6.noarch
+
+   For Example: For centos 6.10 use following commands
+   sudo yum install http://repo.okay.com.mx/centos/6/x86_64/release/okay-release-1-1.noarch.rpm
+   sudo yum install automake
+   sudo yum install autoconf
+
+2. Run following commands :
+      aclocal
+      autoconf
+      autoheader
+      automake --add-missing
+
 The simplest way to compile this package is:
 
   1. `cd' to the directory containing the package's source code and type
